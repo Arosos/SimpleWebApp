@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Microsoft.AspNetCore.Identity;
+using SimpleWebApp.Models;
 
 namespace SimpleWebApp.Areas.Identity.Data
 {
@@ -13,5 +11,7 @@ namespace SimpleWebApp.Areas.Identity.Data
         public string FirstName { get; set; }
         [PersonalData]
         public string LastName { get; set; }
+
+        public virtual ICollection<Post> Posts { get; set; }
     }
 }

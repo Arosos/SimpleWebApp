@@ -11,6 +11,8 @@ namespace SimpleWebApp.Models
 {
     public class SimpleWebAppContext : IdentityDbContext<SimpleWebAppUser>
     {
+        public DbSet<Post> Posts { get; set; }
+
         public SimpleWebAppContext(DbContextOptions<SimpleWebAppContext> options)
             : base(options)
         {
