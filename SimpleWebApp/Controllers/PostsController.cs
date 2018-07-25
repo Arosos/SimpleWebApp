@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -28,6 +29,7 @@ namespace SimpleWebApp.Controllers
                 SimpleWebAppUser user = _userManager.FindByNameAsync(User.Identity.Name).Result;
                 post.Author = user;
                 post.AuthorID = user.Id;
+                post.Timestamp = DateTime.UtcNow;
                 _conext.Add(post);
                 await _conext.SaveChangesAsync();
             }
