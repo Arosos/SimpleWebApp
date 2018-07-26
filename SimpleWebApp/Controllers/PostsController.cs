@@ -1,39 +1,108 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SimpleWebApp.Areas.Identity.Data;
 using SimpleWebApp.Models;
 
 namespace SimpleWebApp.Controllers
 {
+    [Authorize]
     public class PostsController : Controller
     {
-        private SimpleWebAppContext _conext;
+        private SimpleWebAppContext _context;
         private readonly UserManager<SimpleWebAppUser> _userManager;
 
         public PostsController(SimpleWebAppContext context, UserManager<SimpleWebAppUser> userManager)
         {
-            _conext = context;
+            _context = context;
             _userManager = userManager;
         }
+        
+        public async Task<IActionResult> Index()
+        {
+            SimpleWebAppUser user = await _userManager.FindByNameAsync(User.Identity.Name);
+            var userPosts = from p in _context.Posts
+                            where p.AuthorID == user.Id
+                            orderby p.Timestamp descending
+                            select p;
+            return View(userPosts.ToList());
+        }
 
-        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind(include:"Content")] Post post)
         {
+            var user = await _userManager.FindByNameAsync(User.Identity.Name);
             if (ModelState.IsValid)
             {
-                SimpleWebAppUser user = _userManager.FindByNameAsync(User.Identity.Name).Result;
-                post.Author = user;
                 post.AuthorID = user.Id;
                 post.Timestamp = DateTime.UtcNow;
-                _conext.Add(post);
-                await _conext.SaveChangesAsync();
+                _context.Add(post);
+                await _context.SaveChangesAsync();
             }
             return RedirectToAction("Index", "Home");
+        }
+
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null)
+                return NotFound();
+
+            var post = await _context.Posts.SingleOrDefaultAsync(p => p.ID == id);
+
+            if (post == null)
+                return NotFound();
+
+            return View(post);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind(include: "ID,Content")] Post post)
+        {
+            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            var dbPost = _context.Posts.SingleOrDefault(p => p.ID == post.ID);
+            if (id != post.ID || dbPost.AuthorID != user.Id)
+                return NotFound();
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    dbPost.Content = post.Content;
+                    dbPost.Timestamp = DateTime.UtcNow;
+                    _context.Update(dbPost);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!PostExists(id))
+                        return NotFound();
+                    else
+                        throw;
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            return View(post);
+        }
+
+        private bool PostExists(int id)
+        {
+            return _context.Posts.Any(p => p.ID == id);
+        }
+
+        private bool CheckIfCurrentUserPost(Post post)
+        {
+            _context.Posts.FirstOrDefault();
+            return false;
+        }
+
+        private void UpdatePost(Post post, SimpleWebAppUser user)
+        {
         }
     }
 }
