@@ -52,9 +52,13 @@ namespace SimpleWebApp.Controllers
             if (id == null)
                 return NotFound();
 
+            var user = await _userManager.FindByNameAsync(User.Identity.Name);
             var post = await _context.Posts.SingleOrDefaultAsync(p => p.ID == id);
 
             if (post == null)
+                return NotFound();
+
+            if (id != post.ID || post.AuthorID != user.Id)
                 return NotFound();
 
             return View(post);
@@ -65,7 +69,7 @@ namespace SimpleWebApp.Controllers
         public async Task<IActionResult> Edit(int id, [Bind(include: "ID,Content")] Post post)
         {
             var user = await _userManager.FindByNameAsync(User.Identity.Name);
-            var dbPost = _context.Posts.SingleOrDefault(p => p.ID == post.ID);
+            var dbPost = await _context.Posts.SingleOrDefaultAsync(p => p.ID == post.ID);
             if (id != post.ID || dbPost.AuthorID != user.Id)
                 return NotFound();
 
@@ -90,19 +94,41 @@ namespace SimpleWebApp.Controllers
             return View(post);
         }
 
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null)
+                return NotFound();
+
+            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            var post = await _context.Posts.SingleOrDefaultAsync(p => p.ID == id);
+
+            if (post == null)
+                return NotFound();
+
+            if (id != post.ID || post.AuthorID != user.Id)
+                return NotFound();
+
+            return View(post);
+        }
+
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            var post = await _context.Posts.SingleOrDefaultAsync(p => p.ID == id);
+
+            if (post.AuthorID != user.Id)
+                return NotFound();
+
+            _context.Posts.Remove(post);
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
+
         private bool PostExists(int id)
         {
             return _context.Posts.Any(p => p.ID == id);
-        }
-
-        private bool CheckIfCurrentUserPost(Post post)
-        {
-            _context.Posts.FirstOrDefault();
-            return false;
-        }
-
-        private void UpdatePost(Post post, SimpleWebAppUser user)
-        {
         }
     }
 }
